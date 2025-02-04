@@ -1,0 +1,26 @@
+Class,Spec,Parses
+Death Knight,Unholy,843
+Death Knight,Frost,641
+Demon Hunter,Havoc,"1,474"
+Druid,Balance,"1,495"
+Druid,Feral,488
+Evoker,Devastation,"2,897"
+Hunter,Beast Mastery,"2,490"
+Hunter,Marksmanship,919
+Hunter,Survival,397
+Mage,Frost,"1,736"
+Mage,Fire,802
+Mage,Arcane,485
+Monk,Windwalker,900
+Paladin,Retribution,"3,093"
+Priest,Shadow,"2,206"
+Rogue,Subtlety,976
+Rogue,Outlaw,287
+Rogue,Assassination,206
+Shaman,Enhancement,898
+Shaman,Elemental,720
+Warlock,Destruction,"1,756"
+Warlock,Demonology,"1,086"
+Warlock,Affliction,217
+Warrior,Fury,"1,862"
+Warrior,Arms,747
