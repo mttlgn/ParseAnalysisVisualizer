@@ -359,13 +359,11 @@ def create_class_pie_chart(df: pd.DataFrame) -> go.Figure:
         textinfo='label+percent',
         textfont=dict(color='white', size=14),
         hovertemplate='<b>%{label}</b><br>' +
-                      'Share: %{value:.1f}%<br>' +
-                      'Parses: %{customdata:,}<extra></extra>',
+                      'Share: %{value:.1f}%<extra></extra>',
         customdata=class_df['Parses']
     )])
 
     fig.update_layout(
-        title='Class Distribution Overview',
         height=700,
         showlegend=True,
         legend=dict(
@@ -417,8 +415,7 @@ def create_spec_pie_chart(df: pd.DataFrame, class_name: str = None) -> go.Figure
         textfont=dict(color='white', size=14),
         hovertemplate='<b>%{label}</b><br>' +
                       'Class: %{customdata[0]}<br>' +
-                      'Share: %{value:.1f}%<br>' +
-                      'Parses: %{customdata[1]:,}<extra></extra>',
+                      'Share: %{value:.1f}%<extra></extra>',
         customdata=list(zip(spec_df['Class'], spec_df['Parses']))
     )])
 
