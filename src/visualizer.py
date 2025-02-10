@@ -575,7 +575,21 @@ def create_animated_trend_chart(trend_df: pd.DataFrame, animation_type: str = 'c
         frame_data = trend_df[trend_df['Raid'] == raid]
         print(f"Creating frame for raid: {raid}, data shape: {frame_data.shape}")  # Debug print
         
-        frame = {"data": [], "name": str(raid)}
+        frame = {
+            "data": [], 
+            "name": str(raid),
+            "layout": {
+                "annotations": [{
+                    "text": f"Raid: {raid}",
+                    "x": 0.5,
+                    "y": 0.91,
+                    "xref": "paper",
+                    "yref": "paper",
+                    "showarrow": False,
+                    "font": {"size": 18, "color": "white"}
+                }]
+            }
+        }
         
         if animation_type == 'class':
             for class_name in sorted(trend_df['Class'].unique()):
