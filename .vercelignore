@@ -1,0 +1,38 @@
+# Development files
+__pycache__/
+*.pyc
+.pytest_cache
+.coverage
+.env
+.env.*
+
+# Git files
+.git/
+.gitignore
+
+# IDE files
+.vscode/
+.idea/
+
+# Documentation
+*.md
+docs/
+
+# Test files
+tests/
+test_*.py
+
+# Cache and temporary files
+.cache/
+*.log
+*.tmp
+
+# Local development files
+venv/
+.streamlit/
+.ipynb_checkpoints/
+
+# Build artifacts
+dist/
+build/
+*.egg-info/ 
