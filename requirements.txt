@@ -1,7 +1,13 @@
+# Core dependencies with minimal versions
 pandas>=2.0.0,<3.0.0
 plotly>=5.18.0,<6.0.0
 streamlit>=1.29.0,<2.0.0
-numpy>=1.24.0,<2.0.0
 
-# Optimize pandas installation
-pyarrow>=14.0.1  # More efficient than default numpy backend 
+# Optimized dependencies
+pyarrow>=14.0.1
+orjson>=3.9.10  # Faster JSON handling
+httpx>=0.25.2  # Modern HTTP client
+
+# Edge specific optimizations
+starlette>=0.27.0  # ASGI framework
+uvicorn>=0.24.0  # ASGI server 
