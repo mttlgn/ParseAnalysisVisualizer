@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 from pathlib import Path
 import plotly.express as px
+import plotly.graph_objects as go
 
 from data_loader import load_all_raids, calculate_percentages
 from analyzer import (
@@ -27,6 +28,45 @@ def main():
     st.set_page_config(layout="wide", page_title="WoW Raid Analysis")
 
     st.title("Class Participation Changes Over Time")
+
+    # Define global text styling
+    text_style = dict(
+        family='"Segoe UI", -apple-system, BlinkMacSystemFont, Roboto, "Helvetica Neue", Arial, sans-serif',
+        size=16,
+        color='white',
+        weight='bold',
+        shadow="2px 2px 4px black"
+    )
+    inside_text_style = dict(
+        family='"Segoe UI", -apple-system, BlinkMacSystemFont, Roboto, "Helvetica Neue", Arial, sans-serif',
+        size=16,
+        color='white',
+        weight='bold',
+        shadow="2px 2px 4px black"
+    )
+    base_title_style = dict(
+        font=dict(
+            family='"Segoe UI", -apple-system, BlinkMacSystemFont, Roboto, "Helvetica Neue", Arial, sans-serif',
+            size=20,
+            color='white',
+            weight='bold'
+        )
+    )
+    legend_style = dict(
+        font=dict(
+            family='"Segoe UI", -apple-system, BlinkMacSystemFont, Roboto, "Helvetica Neue", Arial, sans-serif',
+            size=16,
+            color='white',
+            weight='bold'
+        ),
+        bgcolor='rgba(0,0,0,0.5)',
+        bordercolor='white',
+        borderwidth=1
+    )
+
+    # Function to create title style with specific text
+    def create_title_style(title_text):
+        return {**base_title_style, 'text': title_text}
 
     # Load all raid data
     raid_data = load_all_raids()
@@ -78,7 +118,9 @@ def main():
                 height=400,
                 yaxis_title='Share (%)',
                 plot_bgcolor='rgba(0,0,0,0.05)',
-                paper_bgcolor='rgba(0,0,0,0)'
+                paper_bgcolor='rgba(0,0,0,0)',
+                font=text_style,
+                title=create_title_style(f'{selected_class} Representation Over Time')
             )
             st.plotly_chart(fig, use_container_width=True)
             
@@ -87,9 +129,15 @@ def main():
             changes_df = analyze_class_changes(raid_data, selected_class, exclude_raids=raids_to_exclude)
             if not changes_df.empty:
                 fig = create_class_change_chart(changes_df, selected_class)
+                fig.update_traces(textfont=text_style)
+                fig.update_layout(
+                    font=text_style,
+                    title=create_title_style(f'{selected_class} Representation Changes'),
+                    legend=legend_style
+                )
                 st.plotly_chart(fig, use_container_width=True)
             
-            # Latest raid stats and spec distribution
+            # Current Status section
             st.subheader("Current Status")
             
             # Add raid selection dropdown
@@ -105,6 +153,18 @@ def main():
             
             # Add spec pie chart for the selected class
             fig = create_spec_pie_chart(current_df, selected_class)
+            fig.update_traces(
+                textposition='inside',
+                textinfo='label+percent',
+                texttemplate='%{label}<br>%{percent:.1%}',
+                textfont=text_style,
+                insidetextfont=inside_text_style
+            )
+            fig.update_layout(
+                font=text_style,
+                title=create_title_style(f'{selected_class} Specialization Distribution'),
+                legend=legend_style
+            )
             st.plotly_chart(fig, use_container_width=True)
             
             col1, col2 = st.columns(2)
@@ -139,7 +199,10 @@ def main():
                 height=400,
                 yaxis_title='Share (%)',
                 plot_bgcolor='rgba(0,0,0,0.05)',
-                paper_bgcolor='rgba(0,0,0,0)'
+                paper_bgcolor='rgba(0,0,0,0)',
+                font=text_style,
+                title=create_title_style(f'{selected_class} Spec Distribution Over Time'),
+                legend=legend_style
             )
             st.plotly_chart(fig, use_container_width=True)
             
@@ -161,6 +224,12 @@ def main():
         st.subheader("Class Representation Trends")
         class_trend_df = identify_class_trends(raid_data, exclude_raids=raids_to_exclude)
         fig = create_class_trend_chart(class_trend_df)
+        fig.update_traces(textfont=text_style)
+        fig.update_layout(
+            font=text_style,
+            title=create_title_style('Class Representation Trends'),
+            legend=legend_style
+        )
         st.plotly_chart(fig, use_container_width=True)
         
         # Class Change Analysis
@@ -185,6 +254,12 @@ def main():
             changes_df = analyze_class_changes(raid_data, selected_class, exclude_raids=class_raids_to_exclude)
             if not changes_df.empty:
                 fig = create_class_change_chart(changes_df, selected_class)
+                fig.update_traces(textfont=text_style)
+                fig.update_layout(
+                    font=text_style,
+                    title=create_title_style(f'{selected_class} Representation Changes'),
+                    legend=legend_style
+                )
                 st.plotly_chart(fig, use_container_width=True)
                 
                 # Show the changes in a table
@@ -196,25 +271,61 @@ def main():
         st.subheader("Specialization Trends")
         spec_trend_df = identify_trends(raid_data, exclude_raids=raids_to_exclude)
         fig = create_trend_chart(spec_trend_df)
+        fig.update_traces(textfont=text_style)
+        fig.update_layout(
+            font=text_style,
+            title=create_title_style('Specialization Trends Across Raids'),
+            legend=legend_style
+        )
         st.plotly_chart(fig, use_container_width=True)
         
-        # Latest raid composition overview with pie charts
-        latest_raid = raid_names[-1]
-        latest_df, latest_totals = calculate_percentages(raid_data[latest_raid])
+        # Add raid selector for composition analysis
+        selected_composition_raid = st.selectbox(
+            "Select Raid for Composition Analysis",
+            options=raid_names,
+            index=len(raid_names)-1,  # Default to latest raid
+            help="Choose which raid to analyze for class and spec distribution"
+        )
         
-        st.subheader(f"Current Raid Composition ({latest_raid})")
+        composition_df, composition_totals = calculate_percentages(raid_data[selected_composition_raid])
         
-        # Add pie charts in a new row
+        st.subheader(f"Raid Composition ({selected_composition_raid})")
+        
+        # Add pie charts in a row
         col1, col2 = st.columns(2)
         
         with col1:
             st.subheader("Class Distribution")
-            fig = create_class_pie_chart(latest_df)
+            fig = create_class_pie_chart(composition_df)
+            fig.update_traces(
+                textposition='inside',
+                textinfo='label+percent',
+                texttemplate='%{label}<br>%{percent:.1%}',
+                textfont=text_style,
+                insidetextfont=inside_text_style
+            )
+            fig.update_layout(
+                font=text_style,
+                title=create_title_style('Class Distribution Overview'),
+                legend=legend_style
+            )
             st.plotly_chart(fig, use_container_width=True)
         
         with col2:
             st.subheader("All Specializations")
-            fig = create_spec_pie_chart(latest_df)
+            fig = create_spec_pie_chart(composition_df)
+            fig.update_traces(
+                textposition='inside',
+                textinfo='label+percent',
+                texttemplate='%{label}<br>%{percent:.1%}',
+                textfont=text_style,
+                insidetextfont=inside_text_style
+            )
+            fig.update_layout(
+                font=text_style,
+                title=create_title_style('All Specializations Distribution'),
+                legend=legend_style
+            )
             st.plotly_chart(fig, use_container_width=True)
         
         # Original visualizations
@@ -222,17 +333,29 @@ def main():
         
         with col1:
             st.subheader("Class/Spec Distribution")
-            fig = create_spec_distribution_chart(latest_df)
+            fig = create_spec_distribution_chart(composition_df)
+            fig.update_traces(textfont=text_style)
+            fig.update_layout(
+                font=text_style,
+                title=create_title_style('Class and Specialization Distribution'),
+                legend=legend_style
+            )
             st.plotly_chart(fig, use_container_width=True)
         
         with col2:
             st.subheader("Distribution Treemap")
-            fig = create_spec_treemap(latest_df)
+            fig = create_spec_treemap(composition_df)
+            fig.update_traces(textfont=text_style)
+            fig.update_layout(
+                font=text_style,
+                title=create_title_style('Class and Specialization Hierarchy'),
+                legend=legend_style
+            )
             st.plotly_chart(fig, use_container_width=True)
         
         # Top specs across all non-excluded raids
         st.subheader("Top 5 Specs (Latest Raid)")
-        top_specs = get_top_specs(latest_df)
+        top_specs = get_top_specs(composition_df)
         st.dataframe(top_specs[['Class', 'Spec', 'Parses', 'Percentage']])
 
     elif selected_raid == "Individual Raid":
@@ -256,11 +379,23 @@ def main():
         with col1:
             st.subheader("Class/Spec Distribution")
             fig = create_spec_distribution_chart(raid_df)
+            fig.update_traces(textfont=text_style)
+            fig.update_layout(
+                font=text_style,
+                title=create_title_style('Class and Specialization Distribution'),
+                legend=legend_style
+            )
             st.plotly_chart(fig, use_container_width=True)
         
         with col2:
             st.subheader("Distribution Treemap")
             fig = create_spec_treemap(raid_df)
+            fig.update_traces(textfont=text_style)
+            fig.update_layout(
+                font=text_style,
+                title=create_title_style('Class and Specialization Hierarchy'),
+                legend=legend_style
+            )
             st.plotly_chart(fig, use_container_width=True)
         
         # Raid comparison section
@@ -274,7 +409,30 @@ def main():
             comparison_df = compare_raids(raid_data[selected_raid], raid_data[comparison_raid])
             
             st.subheader(f"Changes from {selected_raid} to {comparison_raid}")
+            
+            # Calculate changes
+            total_positive_change = comparison_df[comparison_df['Percentage_Change'] > 0]['Percentage_Change'].sum()
+            total_negative_change = comparison_df[comparison_df['Percentage_Change'] < 0]['Percentage_Change'].sum()
+            net_change = total_positive_change + total_negative_change  # Should be very close to 0
+            
+            col1, col2, col3 = st.columns(3)
+            with col1:
+                st.metric("Total Positive Change", f"{total_positive_change:.1f}%", 
+                         help="Sum of all positive percentage changes, indicating total class/spec movement")
+            with col2:
+                st.metric("Total Negative Change", f"{total_negative_change:.1f}%",
+                         help="Sum of all negative percentage changes (should balance with positive)")
+            with col3:
+                st.metric("Net Change", f"{net_change:.2f}%",
+                         help="Net change across all specs (should be very close to 0)")
+            
             fig = create_delta_chart(comparison_df)
+            fig.update_traces(textfont=text_style)
+            fig.update_layout(
+                font=text_style,
+                title=create_title_style('Specialization Distribution Changes'),
+                legend=legend_style
+            )
             st.plotly_chart(fig, use_container_width=True)
         
         # Raw Data
