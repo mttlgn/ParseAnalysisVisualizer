@@ -5,7 +5,9 @@
             "use": "@vercel/python",
             "config": {
                 "maxLambdaSize": "250mb",
-                "runtime": "python3.9"
+                "runtime": "python3.9",
+                "memory": 1024,
+                "maxDuration": 10
             }
         }
     ],
@@ -14,11 +16,5 @@
             "src": "/(.*)",
             "dest": "api/index.py"
         }
-    ],
-    "functions": {
-        "api/index.py": {
-            "memory": 1024,
-            "maxDuration": 10
-        }
-    }
+    ]
 } 
