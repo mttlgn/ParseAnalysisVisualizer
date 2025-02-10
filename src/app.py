@@ -21,6 +21,7 @@ from visualizer import (
     create_class_change_chart,
     create_class_pie_chart,
     create_spec_pie_chart,
+    create_animated_trend_chart,
     WOW_CLASS_COLORS
 )
 
@@ -219,6 +220,58 @@ def main():
             options=raid_names,
             help="Select raids to exclude from the analysis (e.g., to remove pre-patch or specific versions)"
         )
+        
+        # Animation Controls
+        st.subheader("Animation Controls")
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            frame_duration = st.slider(
+                "Frame Duration (ms)",
+                min_value=500,
+                max_value=3000,
+                value=1000,
+                step=100,
+                help="How long each frame is displayed"
+            )
+        with col2:
+            transition_duration = st.slider(
+                "Transition Duration (ms)",
+                min_value=100,
+                max_value=1000,
+                value=500,
+                step=100,
+                help="How long the transition between frames takes"
+            )
+        with col3:
+            if st.button("Reset to Default", help="Reset animation timings to default values"):
+                frame_duration = 1000
+                transition_duration = 500
+        
+        # Animated Class Trends
+        st.subheader("Animated Class Representation Trends")
+        class_trend_df = identify_class_trends(raid_data, exclude_raids=raids_to_exclude)
+        fig = create_animated_trend_chart(class_trend_df, animation_type='class', 
+                                        frame_duration=frame_duration, 
+                                        transition_duration=transition_duration)
+        fig.update_layout(
+            font=text_style,
+            title=create_title_style('Class Representation Changes Over Time'),
+            legend=legend_style
+        )
+        st.plotly_chart(fig, use_container_width=True)
+        
+        # Animated Spec Trends
+        st.subheader("Animated Specialization Trends")
+        spec_trend_df = identify_trends(raid_data, exclude_raids=raids_to_exclude)
+        fig = create_animated_trend_chart(spec_trend_df, animation_type='spec',
+                                        frame_duration=frame_duration,
+                                        transition_duration=transition_duration)
+        fig.update_layout(
+            font=text_style,
+            title=create_title_style('Specialization Changes Over Time'),
+            legend=legend_style
+        )
+        st.plotly_chart(fig, use_container_width=True)
         
         # Class Trends
         st.subheader("Class Representation Trends")

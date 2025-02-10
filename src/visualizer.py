@@ -20,6 +20,38 @@ WOW_CLASS_COLORS = {
     'Warrior': '#C79C6E'       # Brown
 }
 
+# Animation chart styles
+ANIMATED_CHART_STYLE = {
+    'bar': dict(
+        width=0.8,  # Bar width
+    ),
+    'axis': dict(
+        tickfont=dict(
+            size=16,  # X-axis label size
+            color='#E0E0E0'
+        ),
+        title_font=dict(
+            size=18,  # Axis title size
+            color='#FFFFFF'
+        ),
+        gridcolor='rgba(255,255,255,0.1)',
+        title_standoff=15
+    ),
+    'title': dict(
+        font=dict(
+            size=24,  # Title size
+            color='#FFFFFF'
+        )
+    ),
+    'animation_controls': dict(
+        bgcolor='rgba(0,0,0,0.5)',
+        font=dict(
+            color='white',
+            size=14
+        )
+    )
+}
+
 # Common theme settings
 CHART_THEME = {
     'font': dict(
@@ -440,4 +472,244 @@ def create_spec_pie_chart(df: pd.DataFrame, class_name: str = None) -> go.Figure
         ]
     )
 
+    return apply_common_theme(fig)
+
+def create_animated_trend_chart(trend_df: pd.DataFrame, animation_type: str = 'class', frame_duration: int = 1000, transition_duration: int = 500) -> go.Figure:
+    """
+    Create an animated bar chart showing changes over time.
+    
+    Args:
+        trend_df (pd.DataFrame): Trend data DataFrame
+        animation_type (str): Either 'class' or 'spec' to determine visualization type
+        frame_duration (int): Duration of each frame in milliseconds
+        transition_duration (int): Duration of transitions in milliseconds
+        
+    Returns:
+        go.Figure: Plotly figure object with animation
+    """
+    # Make a copy of the DataFrame to avoid modifying the original
+    trend_df = trend_df.copy()
+    
+    # Define raid order (from oldest to newest)
+    RAID_ORDER = [
+        'Uldir (8.1)',
+        'Battle of Dazar\'alor',
+        'Crucible of Storms',
+        'Eternal Palace',
+        'Nya\'lotha (Pre-Nerf)',
+        'Sepulcher of the First Ones (9.2)',
+        'Vault of the Incarnates',
+        'Aberrus, The Shadowed Crucible',
+        'Amirdrassil, the Dream\'s Hope',
+        'Nerub-ar Palace'
+    ]
+    
+    # Ensure all raid names in the DataFrame match the expected names
+    unique_raids = trend_df['Raid'].unique()
+    print(f"Unique raids in DataFrame: {unique_raids}")  # Debug print
+    
+    # Create a categorical type for raid names with the correct order
+    trend_df['Raid'] = pd.Categorical(trend_df['Raid'], categories=RAID_ORDER, ordered=True)
+    
+    # Sort by raid to ensure correct animation sequence
+    trend_df = trend_df.sort_values('Raid')
+    
+    # Create figure
+    fig = go.Figure()
+    
+    # Get initial data for the first raid that exists in the DataFrame
+    available_raids = [raid for raid in RAID_ORDER if raid in trend_df['Raid'].unique()]
+    if not available_raids:
+        print("No matching raids found in DataFrame")  # Debug print
+        return fig
+    
+    first_raid = available_raids[0]
+    initial_data = trend_df[trend_df['Raid'] == first_raid]
+    
+    if animation_type == 'class':
+        # Add a bar for each class
+        for class_name in sorted(trend_df['Class'].unique()):
+            class_data = initial_data[initial_data['Class'] == class_name]
+            percentage = class_data['Percentage'].iloc[0] if not class_data.empty else 0
+            
+            fig.add_trace(
+                go.Bar(
+                    x=[class_name],
+                    y=[percentage],
+                    name=class_name,
+                    marker_color=WOW_CLASS_COLORS[class_name],
+                    width=ANIMATED_CHART_STYLE['bar']['width'],
+                    hovertemplate='<b>%{x}</b><br>' +
+                                'Share: %{y:.1f}%<extra></extra>'
+                )
+            )
+    else:
+        # Add a bar for each spec
+        class_spec_pairs = [(class_name, spec) 
+                           for class_name in sorted(trend_df['Class'].unique())
+                           for spec in sorted(trend_df[trend_df['Class'] == class_name]['Spec'].unique())]
+        
+        for class_name, spec in class_spec_pairs:
+            spec_data = initial_data[(initial_data['Class'] == class_name) & 
+                                   (initial_data['Spec'] == spec)]
+            percentage = spec_data['Percentage'].iloc[0] if not spec_data.empty else 0
+            
+            x_pos = f"{spec}<br><span style='opacity:0'>{class_name}</span>"
+            
+            fig.add_trace(
+                go.Bar(
+                    x=[x_pos],
+                    y=[percentage],
+                    name=f"{spec} ({class_name})",
+                    marker_color=WOW_CLASS_COLORS[class_name],
+                    width=ANIMATED_CHART_STYLE['bar']['width'],
+                    hovertemplate='<b>%{x}</b><br>' +
+                                'Class: ' + class_name + '<br>' +
+                                'Share: %{y:.1f}%<extra></extra>'
+                )
+            )
+    
+    # Create frames for animation
+    frames = []
+    for raid in available_raids:
+        frame_data = trend_df[trend_df['Raid'] == raid]
+        print(f"Creating frame for raid: {raid}, data shape: {frame_data.shape}")  # Debug print
+        
+        frame = {"data": [], "name": str(raid)}
+        
+        if animation_type == 'class':
+            for class_name in sorted(trend_df['Class'].unique()):
+                class_data = frame_data[frame_data['Class'] == class_name]
+                percentage = class_data['Percentage'].iloc[0] if not class_data.empty else 0
+                
+                frame["data"].append(
+                    go.Bar(
+                        x=[class_name],
+                        y=[percentage],
+                        marker_color=WOW_CLASS_COLORS[class_name]
+                    )
+                )
+        else:
+            # Create list of (class, spec) tuples for this frame
+            class_spec_pairs = [(class_name, spec) 
+                              for class_name in sorted(trend_df['Class'].unique())
+                              for spec in sorted(trend_df[trend_df['Class'] == class_name]['Spec'].unique())]
+            
+            for class_name, spec in class_spec_pairs:
+                spec_data = frame_data[(frame_data['Class'] == class_name) & 
+                                     (frame_data['Spec'] == spec)]
+                percentage = spec_data['Percentage'].iloc[0] if not spec_data.empty else 0
+                
+                # Use the same unique x-axis position with hidden class identifier
+                x_pos = f"{spec}<br><span style='opacity:0'>{class_name}</span>"
+                
+                frame["data"].append(
+                    go.Bar(
+                        x=[x_pos],
+                        y=[percentage],
+                        marker_color=WOW_CLASS_COLORS[class_name],
+                        width=ANIMATED_CHART_STYLE['bar']['width']
+                    )
+                )
+        
+        frames.append(frame)
+    
+    # Update layout with new styles
+    title = 'Class Distribution by Raid' if animation_type == 'class' else 'Spec Distribution by Raid'
+    
+    fig.update_layout(
+        title=dict(
+            text=title,
+            y=0.98,  # Move title up slightly
+            **ANIMATED_CHART_STYLE['title']
+        ),
+        showlegend=False,
+        height=600,
+        margin=dict(t=120, l=60, r=40, b=100),  # Increase top and bottom margins
+        xaxis=dict(
+            title='',
+            tickangle=-45 if animation_type == 'spec' else -30,
+            showgrid=False,
+            **ANIMATED_CHART_STYLE['axis']
+        ),
+        yaxis=dict(
+            title='Share (%)',
+            range=[0, max(trend_df['Percentage']) * 1.1],
+            showgrid=True,
+            **ANIMATED_CHART_STYLE['axis']
+        ),
+        annotations=[{
+            "text": f"Raid: {first_raid}",
+            "x": 0.5,
+            "y": 0.91,  # Adjust position below title
+            "xref": "paper",
+            "yref": "paper",
+            "showarrow": False,
+            "font": {"size": 18, "color": "white"}
+        }],
+        updatemenus=[{
+            "buttons": [
+                {
+                    "args": [None, {"frame": {"duration": frame_duration, "redraw": True},
+                                  "fromcurrent": True,
+                                  "transition": {"duration": transition_duration, "easing": "cubic-in-out"}}],
+                    "label": "Play",
+                    "method": "animate"
+                },
+                {
+                    "args": [[None], {"frame": {"duration": 0, "redraw": True},
+                                    "mode": "immediate",
+                                    "transition": {"duration": 0}}],
+                    "label": "Pause",
+                    "method": "animate"
+                }
+            ],
+            "direction": "left",
+            "pad": {"r": 10, "t": 87},
+            "showactive": False,
+            "active": -1,
+            "type": "buttons",
+            "x": 0.05,
+            "xanchor": "right",
+            "y": -0.15,  # Move buttons down
+            "yanchor": "top",
+            "bgcolor": "rgba(0,0,0,0.5)",
+            "bordercolor": "rgba(255,255,255,0.2)",
+            "font": {"color": "white", "size": 14}
+        }],
+        sliders=[{
+            "active": 0,
+            "yanchor": "top",
+            "xanchor": "left",
+            "currentvalue": {
+                "font": {"size": 18, "color": "white"},
+                "prefix": "Raid: ",
+                "visible": False,
+                "xanchor": "right"
+            },
+            "transition": {"duration": transition_duration, "easing": "cubic-in-out"},
+            "pad": {"b": 10, "t": 50},
+            "len": 0.9,
+            "x": 0.1,
+            "y": -0.2,  # Move slider down
+            "bgcolor": "rgba(0,0,0,0.5)",
+            "bordercolor": "rgba(255,255,255,0.2)",
+            "tickcolor": "white",
+            "font": {"color": "white", "size": 14},
+            "steps": [
+                {
+                    "args": [[raid],
+                            {"frame": {"duration": frame_duration, "redraw": True},
+                             "mode": "immediate",
+                             "transition": {"duration": transition_duration}}],
+                    "label": str(raid),
+                    "method": "animate"
+                } for raid in available_raids
+            ]
+        }]
+    )
+    
+    # Add frames to the figure
+    fig.frames = frames
+    
     return apply_common_theme(fig) 
