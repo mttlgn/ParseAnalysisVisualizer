@@ -74,15 +74,18 @@ def main():
     raid_names = list(raid_data.keys())
 
     # Sidebar for raid selection
-    st.sidebar.header("Raid Selection")
-    selected_raid = st.sidebar.selectbox(
+    st.sidebar.header("Page Selection")
+    selected_page = st.sidebar.selectbox(
         "Select View",
-        ["All Raids", "Class Analysis", "Individual Raid"] + raid_names,
-        help="Choose between overview, class analysis, or specific raid views"
+        ["All Raids", "Class Analysis", "Individual Raid", "Mythic+ Analysis"] + raid_names,
+        help="Choose between overview, class analysis, specific raid views, or Mythic+ analysis"
     )
 
     # Main content
-    if selected_raid == "Class Analysis":
+    if selected_page == "Mythic+ Analysis":
+        from mythic_page import show_mythic_page
+        show_mythic_page()
+    elif selected_page == "Class Analysis":
         st.header("Class Analysis")
         
         # Class selection
@@ -211,7 +214,7 @@ def main():
             with st.expander("Show Historical Data"):
                 st.dataframe(class_specific_trend.sort_values('Raid'))
 
-    elif selected_raid == "All Raids":
+    elif selected_page == "All Raids":
         st.header("All Raids Overview")
         
         # Add raid exclusion multiselect
@@ -411,14 +414,14 @@ def main():
         top_specs = get_top_specs(composition_df)
         st.dataframe(top_specs[['Class', 'Spec', 'Parses', 'Percentage']])
 
-    elif selected_raid == "Individual Raid":
+    elif selected_page == "Individual Raid":
         st.header("Select a specific raid from the dropdown above")
 
     else:
-        st.header(f"Analysis for {selected_raid}")
+        st.header(f"Analysis for {selected_page}")
         
         # Get data for selected raid
-        current_raid_data = raid_data[selected_raid]
+        current_raid_data = raid_data[selected_page]
         raid_df, class_totals = calculate_percentages(current_raid_data)
         
         # Display top specs
@@ -455,13 +458,13 @@ def main():
         st.header("Raid Comparison")
         comparison_raid = st.selectbox(
             "Select Raid to Compare With",
-            [r for r in raid_names if r != selected_raid]
+            [r for r in raid_names if r != selected_page]
         )
         
         if comparison_raid:
-            comparison_df = compare_raids(raid_data[selected_raid], raid_data[comparison_raid])
+            comparison_df = compare_raids(raid_data[selected_page], raid_data[comparison_raid])
             
-            st.subheader(f"Changes from {selected_raid} to {comparison_raid}")
+            st.subheader(f"Changes from {selected_page} to {comparison_raid}")
             
             # Calculate changes
             total_positive_change = comparison_df[comparison_df['Percentage_Change'] > 0]['Percentage_Change'].sum()
