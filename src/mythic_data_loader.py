@@ -27,7 +27,7 @@ def load_mythic_scaling_data():
     try:
         scaling_percentages = pd.read_csv(data_dir / 'M+ Scaling Season 1 vs Season 2 - Scaling Percentages.csv')
         scaling_10_higher = pd.read_csv(data_dir / 'M+ Scaling Season 1 vs Season 2 - Scaling With 10_ Higher Baseline.csv')
-        scaling_25_higher = pd.read_csv(data_dir / 'M+ Scaling Season 1 vs Season 2 - Scaling With 25_ Higher Baseline.csv')
+        scaling_25_higher = pd.read_csv(data_dir / 'M+ Scaling Season 1 vs Season 2 - Scaling WIth 25_ Higher Baseline.csv')
     except FileNotFoundError as e:
         # List available files in the directory for debugging
         available_files = list(data_dir.glob('*.csv')) if data_dir.exists() else []
